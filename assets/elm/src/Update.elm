@@ -1,11 +1,15 @@
 module Update exposing (update)
 
+import Debug exposing (toString)
+import Decoder exposing (todoResponseDecoder)
 import Entities exposing (Task)
+import Http
+import Json.Encode as JE
 import Model exposing (..)
 import Msg exposing (..)
 
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         AddTask ->
@@ -13,45 +17,127 @@ update msg model =
                 Just aTask ->
                     let
                         newTask =
-                            { id = model.lastId + 1
+                            { id = 0
                             , isComplete = False
                             , description = aTask
                             }
                     in
-                    { model
-                        | allTasks = newTask :: model.allTasks
-                        , newTask = Nothing
-                        , lastId = model.lastId + 1
-                    }
+                    ( 
+                        -- {
+                         model
+                        -- | allTasks = newTask :: model.allTasks
+                        -- , newTask = Nothing
+                        -- , lastId = model.lastId + 1
+                    --   }
+                    , addTask newTask
+                    )
 
                 Nothing ->
-                    model
+                    ( model, Cmd.none )
 
         NewTask newTask ->
             if String.trim newTask == "" then
-                { model
+                ( { model
                     | newTask = Nothing
-                }
+                  }
+                , Cmd.none
+                )
 
             else
-                { model
+                ( { model
                     | newTask = Just newTask
-                }
+                  }
+                , Cmd.none
+                )
 
         ToggleTask id ->
             let
-                updatedTasks =
-                    List.map (updateTaskStatus id) model.allTasks
+                tasks =
+                    List.head (List.filter (\t -> t.id == id) model.allTasks)
             in
-            { model | allTasks = updatedTasks }
+            case tasks of
+                Just task ->
+                    ( model, editTask {task | isComplete = not task.isComplete} )
 
-        DeleteTask id ->
-            { model | allTasks = List.filter (\task -> task.id /= id) model.allTasks }
+                Nothing ->
+                    ( model, Cmd.none )
 
         EditTask id ->
-            { model | editingTaskId = Just id }
+            ( { model | editingTaskId = Just id }, Cmd.none )
 
-        SaveEditedTask newDescription ->
+        SaveEditedTask savingTaskId ->
+            case model.editingTaskId of
+                Just id ->
+                    let
+                        updatedTasks =
+                            List.head (List.filter (\t -> t.id == id && id == savingTaskId) model.allTasks)
+                    in
+                    case updatedTasks of
+                        Just task ->
+                            -- if task.description /= "" then
+                            ( model, editTask task )
+
+                        -- else
+                        --     ( { model | warning = Just "Task Cannot be empty" }, Cmd.none )
+                        Nothing ->
+                            ( model, Cmd.none )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        Reset ->
+            ( { model
+                | editingTaskId = Nothing
+                , warning = Nothing
+              }
+            , Cmd.none
+            )
+
+        FilterTask ->
+            ( { model | filterTask = not model.filterTask }, Cmd.none )
+
+        FetchData ->
+            ( model
+            , fetchTasks
+            )
+
+        LoadData results ->
+            case results of
+                Ok result ->
+                    ( { model | allTasks = result }, Cmd.none )
+
+                Err error ->
+                    let
+                        _ =
+                            Debug.log "er" error
+                    in
+                    ( { model | warning = Just "Error occured" }, Cmd.none )
+
+        DeleteTask taskId ->
+            ( { model | deleteTaskId = taskId }, deleteTask taskId )
+
+        TaskDeleted (Ok _) ->
+            ( { model | allTasks = List.filter (\task -> task.id /= model.deleteTaskId) model.allTasks }, Cmd.none )
+
+        TaskDeleted (Err _) ->
+            ( { model | warning = Just "Unable to delete task" }
+            , Cmd.none
+            )
+
+        TaskUpdated result ->
+            case result of
+                Ok _ ->
+                    ( { model
+                        | editingTaskId = Nothing
+                        , warning = Nothing
+                      }
+                    , fetchTasks
+                    )
+
+                Err _ ->
+                    ( model, Cmd.none )
+
+        SaveDescription newDescription ->
             case model.editingTaskId of
                 Just id ->
                     let
@@ -59,25 +145,18 @@ update msg model =
                             List.map (updateTaskDescription id newDescription) model.allTasks
                     in
                     if newDescription /= "" then
-                        { model
+                        ( { model
                             | allTasks = updatedTasks
                             , warning = Nothing
-                        }
+                          }
+                        , Cmd.none
+                        )
 
                     else
-                        { model | warning = Just "Task Cannot be empty" }
+                        ( { model | warning = Just "Task Cannot be empty" }, Cmd.none )
 
                 Nothing ->
-                    model
-
-        Reset ->
-            { model
-                | editingTaskId = Nothing
-                , warning = Nothing
-            }
-
-        FilterTask ->
-            { model | filterTask = not model.filterTask }
+                    ( model, Cmd.none )
 
 
 updateTaskDescription : Int -> String -> Task -> Task
@@ -89,14 +168,67 @@ updateTaskDescription id newDescription task =
         task
 
 
-updateTaskStatus : Int -> Task -> Task
-updateTaskStatus id task =
-    if task.id == id then
-        let
-            updatedTask =
-                { task | isComplete = not task.isComplete }
-        in
-        updatedTask
+fetchTasks : Cmd Msg
+fetchTasks =
+    Http.get
+        { url = "http://localhost:4000/todos"
+        , expect = Http.expectJson LoadData todoResponseDecoder
+        }
 
-    else
-        task
+
+deleteTask : Int -> Cmd Msg
+deleteTask taskId =
+    Http.request
+        { method = "DELETE"
+        , headers = []
+        , url = "http://localhost:4000/deleteTask/" ++ toString taskId
+        , body = Http.emptyBody
+        , expect = Http.expectString TaskUpdated
+        -- , expect = Http.expectString TaskDeleted
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+editTask : Task -> Cmd Msg
+editTask task =
+    Http.request
+        { method = "PUT"
+        , headers = []
+        , url = "http://localhost:4000/editTask"
+        , body =
+            Http.jsonBody
+                (JE.object
+                    [ ( "id", JE.int task.id )
+                    , ( "description", JE.string task.description )
+                    , ( "isComplete", JE.bool task.isComplete )
+                    ]
+                )
+
+        -- (JE.object
+        --     [ ("isComplete"
+        --     , JE.string (toString task.isComplete))
+        --     , ("description"
+        --     , JE.string task.description)
+        --     , ("id"
+        --     , JE.string (toString task.id))
+        --     ]
+        -- )
+        , expect = Http.expectString TaskUpdated
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+addTask : Task -> Cmd Msg
+addTask task =
+      Http.post
+        { url = "http://localhost:4000/createTask"
+        , body = Http.jsonBody
+                (JE.object
+                    [ 
+                     ( "description", JE.string task.description )
+                    , ( "isComplete", JE.bool task.isComplete )
+                    ]
+                )
+        , expect = Http.expectString TaskUpdated
+        }

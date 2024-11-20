@@ -38,12 +38,18 @@ view model =
             , style "background-color" "white"
             ]
             [ text "Show Completed" ]
-        , button
-            [ onClick Reset
-            , style "font-size" "15px"
-            , style "background-color" "white"
-            ]
-            [ text "save" ]
+        -- , button
+        --     [ onClick Reset
+        --     , style "font-size" "15px"
+        --     , style "background-color" "white"
+        --     ]
+        --     [ text "reset" ]
+        -- , button
+        --     [ onClick FetchData
+        --     , style "font-size" "15px"
+        --     , style "background-color" "white"
+        --     ]
+        --     [ text "get Tasks" ]
         , table
             [ style "letter-spacing" "1px"
             , style "border" "2px solid black"
@@ -100,7 +106,7 @@ getTableRow editingTaskId data =
                 input
                     [ type_ "text"
                     , value data.description
-                    , onInput SaveEditedTask
+                    , onInput SaveDescription
                     ]
                     []
 
@@ -135,12 +141,12 @@ getTableRow editingTaskId data =
                     []
                 ]
             ]
-        -- , td [ style "padding" "5px" ]
-        --     [ button
-        --         [ onClick Reset
-        --         , style "border" "none"
-        --         , style "cursor" "pointer"
-        --         ]
-        --         [ text "save" ]
-        --     ]
+        , td [ style "padding" "5px" ]
+            [ button
+                [ onClick (SaveEditedTask data.id)
+                , style "border" "none"
+                , style "cursor" "pointer"
+                ]
+                [ text "save" ]
+            ]
         ]

@@ -61,6 +61,15 @@ config :logger, :console,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
+config :cors_plug,
+  origin: [
+    "http://localhost:4000",
+    "http://localhost:4001",
+    "http://localhost:8080",
+    "http://127.0.0.1:4000",
+    "http://127.0.0.1:4001",
+    "http://127.0.0.1:8080"
+  ]
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"

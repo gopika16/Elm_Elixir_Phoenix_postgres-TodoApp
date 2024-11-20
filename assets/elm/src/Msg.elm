@@ -1,12 +1,20 @@
 module Msg exposing (..)
+import Entities exposing (Task)
+import Http
 
 
 type Msg
     = AddTask
     | NewTask String
     | ToggleTask Int
-    | DeleteTask Int
     | EditTask Int
-    | SaveEditedTask String
+    | SaveEditedTask Int
+    | SaveDescription String 
     | Reset
-    | FilterTask
+    | FilterTask 
+    | FetchData
+    | LoadData (Result Http.Error (List Task))
+    | DeleteTask Int
+    | TaskDeleted (Result Http.Error String)
+    | TaskUpdated (Result Http.Error String)
+

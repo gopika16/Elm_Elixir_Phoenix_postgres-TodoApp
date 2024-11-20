@@ -34,6 +34,15 @@ defmodule TodoAppWeb.Endpoint do
     plug Phoenix.Ecto.CheckRepoStatus, otp_app: :todoApp
   end
 
+  # plug CORSPlug, origin: ["http://localhost:8080"]
+  plug CORSPlug, origin: [
+    "http://localhost:4000",
+    "http://localhost:4001",
+    "http://localhost:8080",
+    "http://127.0.0.1:4000",
+    "http://127.0.0.1:4001",
+    "http://127.0.0.1:8080"
+  ]
   plug Phoenix.LiveDashboard.RequestLogger,
     param_key: "request_logger",
     cookie_key: "request_logger"

@@ -6,3 +6,8 @@ type alias Task =
     , isComplete : Bool
     , description : String
     }
+
+type alias TodoResponse =
+    { status : String
+    , todos : List Task
+    }
