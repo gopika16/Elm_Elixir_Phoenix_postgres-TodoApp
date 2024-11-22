@@ -27,13 +27,6 @@ defmodule TodoAppWeb.Contexts.TodoContext do
       |> Repo.update()
     end
 
-    # def update_task(%Todos{} = task, todo) do
-
-    #   task
-    #   |> Todos.changeset(todo)
-    #   |> Repo.update()
-    # end
-
    def delete_task(id) do
     task = get_task_by_id!(id)
     Repo.delete(task)

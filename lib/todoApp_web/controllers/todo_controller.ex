@@ -21,9 +21,6 @@ defmodule TodoAppWeb.TodoController do
         |> put_status(:not_found)
         |> json(%{error: "Task not found"})
     end
-
-    # # json(conn, todos)
-    # json(conn, :ok)
   end
 
 

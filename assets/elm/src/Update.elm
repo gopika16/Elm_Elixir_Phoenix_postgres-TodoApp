@@ -22,13 +22,7 @@ update msg model =
                             , description = aTask
                             }
                     in
-                    ( 
-                        -- {
-                         model
-                        -- | allTasks = newTask :: model.allTasks
-                        -- , newTask = Nothing
-                        -- , lastId = model.lastId + 1
-                    --   }
+                    ( { model | newTask = Nothing }
                     , addTask newTask
                     )
 
@@ -57,7 +51,7 @@ update msg model =
             in
             case tasks of
                 Just task ->
-                    ( model, editTask {task | isComplete = not task.isComplete} )
+                    ( model, editTask { task | isComplete = not task.isComplete } )
 
                 Nothing ->
                     ( model, Cmd.none )
@@ -74,11 +68,8 @@ update msg model =
                     in
                     case updatedTasks of
                         Just task ->
-                            -- if task.description /= "" then
                             ( model, editTask task )
 
-                        -- else
-                        --     ( { model | warning = Just "Task Cannot be empty" }, Cmd.none )
                         Nothing ->
                             ( model, Cmd.none )
 
@@ -204,29 +195,20 @@ editTask task =
                     , ( "isComplete", JE.bool task.isComplete )
                     ]
                 )
-
-        -- (JE.object
-        --     [ ("isComplete"
-        --     , JE.string (toString task.isComplete))
-        --     , ("description"
-        --     , JE.string task.description)
-        --     , ("id"
-        --     , JE.string (toString task.id))
-        --     ]
-        -- )
         , expect = Http.expectString TaskUpdated
         , timeout = Nothing
         , tracker = Nothing
         }
 
+
 addTask : Task -> Cmd Msg
 addTask task =
-      Http.post
+    Http.post
         { url = "http://localhost:4000/createTask"
-        , body = Http.jsonBody
+        , body =
+            Http.jsonBody
                 (JE.object
-                    [ 
-                     ( "description", JE.string task.description )
+                    [ ( "description", JE.string task.description )
                     , ( "isComplete", JE.bool task.isComplete )
                     ]
                 )
